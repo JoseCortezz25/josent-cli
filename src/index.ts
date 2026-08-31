@@ -3,6 +3,7 @@ import {
   loadStarterCatalog,
   type StarterCatalogEntry,
 } from './catalog.js';
+import { selectStarter } from './starter-picker.js';
 
 export const APP_NAME = 'josent';
 export const VERSION = '0.1.0';
@@ -41,13 +42,17 @@ export function getInitHelpText(): string {
   return [
     `${APP_NAME} init`,
     '',
-    'Start the starter selection flow.',
+    'Start interactive starter selection.',
     '',
     'Usage:',
     `  ${APP_NAME} init`,
     '',
-    'Flags:',
-    '  -h, --help  Show this help text',
+    'Controls:',
+    '  type         Filter the starter list',
+    '  ↑ / ↓        Move the selection',
+    '  Enter        Choose the highlighted starter',
+    '  Esc          Clear the search query',
+    '  Ctrl+C       Cancel the flow',
     '',
     'Related commands:',
     `  ${APP_NAME} list`,
@@ -64,28 +69,19 @@ export function getListText(): string {
   ].join('\n');
 }
 
-export function getInitText(): string {
-  return [
-    `${APP_NAME} init`,
-    '',
-    'Interactive starter selection is coming online in the next slice.',
-    `Use ${APP_NAME} list to inspect the current catalog.`,
-  ].join('\n');
-}
-
 function isHelpFlag(value: string | undefined): boolean {
   return value === '-h' || value === '--help';
 }
 
 function writeLine(message: string): void {
-  process.stdout.write(`${message}\n`);
+  console.log(message);
 }
 
 function writeError(message: string): void {
-  process.stderr.write(`${message}\n`);
+  console.error(message);
 }
 
-export function run(argv: string[]): number {
+export async function run(argv: string[]): Promise<number> {
   const [command, subcommand] = argv;
 
   if (!command || isHelpFlag(command)) {
@@ -110,7 +106,16 @@ export function run(argv: string[]): number {
       return 1;
     }
 
-    writeLine(getInitText());
+    const starters = loadStarterCatalog(CATALOG_VERSION);
+    const starter = await selectStarter(starters);
+
+    if (starter === null) {
+      writeError(`No starters are available in the ${APP_NAME} catalog.`);
+      return 1;
+    }
+
+    writeLine(`Selected starter: ${starter.name}`);
+    writeLine(`Repository: ${starter.repoUrl}`);
     return 0;
   }
 
