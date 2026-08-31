@@ -61,6 +61,7 @@ export function getInitHelpText(): string {
     'Flags:',
     '  -n, --name <name>           Set the project name',
     '  -d, --destination <path>    Set the destination path',
+    '  --no-install                Skip dependency installation',
     '',
     'Related commands:',
     `  ${APP_NAME} list`,
@@ -123,6 +124,7 @@ export async function run(argv: string[]): Promise<number> {
       const cloneResult = await cloneStarter(
         starter,
         projectTarget.destination,
+        projectTarget.installDependencies,
       );
 
       writeLine(`Selected starter: ${starter.name}`);
@@ -133,6 +135,12 @@ export async function run(argv: string[]): Promise<number> {
 
       if (cloneResult.originUrl !== null) {
         writeLine(`New origin: ${cloneResult.originUrl}`);
+      }
+
+      if (projectTarget.installDependencies) {
+        writeLine('Dependencies installed successfully.');
+      } else {
+        writeLine('Dependency installation skipped.');
       }
     } catch (error) {
       writeError(error instanceof Error ? error.message : String(error));

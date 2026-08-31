@@ -1,9 +1,11 @@
 import { execFileSync } from 'node:child_process';
 import {
+  chmodSync,
   existsSync,
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -51,7 +53,11 @@ function runGit(args: string[], cwd: string): string {
   });
 }
 
-function createStarterRepo(): {
+function createStarterRepo(
+  options: {
+    lockfile?: 'pnpm' | 'npm' | null;
+  } = {},
+): {
   repoPath: string;
   starter: StarterCatalogEntry;
 } {
@@ -61,8 +67,24 @@ function createStarterRepo(): {
   runGit(['config', 'user.email', 'agent@example.com'], repoPath);
   runGit(['config', 'user.name', 'Agent Test'], repoPath);
 
+  writeFileSync(
+    join(repoPath, 'package.json'),
+    '{"name":"starter","private":true}\n',
+  );
   writeFileSync(join(repoPath, 'README.md'), '# template\n');
   writeFileSync(join(repoPath, 'src.txt'), 'starter contents\n');
+
+  if (options.lockfile === 'pnpm') {
+    writeFileSync(join(repoPath, 'pnpm-lock.yaml'), 'lockfileVersion: 9.0\n');
+  }
+
+  if (options.lockfile === 'npm') {
+    writeFileSync(
+      join(repoPath, 'package-lock.json'),
+      '{"lockfileVersion":3}\n',
+    );
+  }
+
   runGit(['add', '.'], repoPath);
   runGit(['commit', '-m', 'initial starter'], repoPath);
 
@@ -77,6 +99,55 @@ function createStarterRepo(): {
   };
 }
 
+function createCommandDir(logPath: string, commands: string[]): string {
+  const commandDir = mkdtempSync(join(tmpdir(), 'josent-bin-'));
+
+  for (const command of commands) {
+    const scriptPath = join(commandDir, command);
+    writeFileSync(
+      scriptPath,
+      `#!/usr/bin/env node
+const fs = require('node:fs');
+fs.appendFileSync(${JSON.stringify(logPath)}, '${command} ' + process.argv.slice(2).join(' ') + '\\n');
+`,
+    );
+    chmodSync(scriptPath, 0o755);
+  }
+
+  return commandDir;
+}
+
+function getSystemBinaryPath(binary: string): string {
+  return execFileSync('which', [binary], { encoding: 'utf8' }).trim();
+}
+
+function createBinaryMirrorDir(binaries: Record<string, string>): string {
+  const binaryDir = mkdtempSync(join(tmpdir(), 'josent-bin-mirror-'));
+
+  for (const [name, target] of Object.entries(binaries)) {
+    symlinkSync(target, join(binaryDir, name));
+  }
+
+  return binaryDir;
+}
+
+async function withPath<T>(
+  pathEntries: string[],
+  run: () => Promise<T>,
+  preservePreviousPath = true,
+): Promise<T> {
+  const previousPath = process.env.PATH ?? '';
+  process.env.PATH = preservePreviousPath
+    ? `${pathEntries.join(':')}:${previousPath}`
+    : pathEntries.join(':');
+
+  try {
+    return await run();
+  } finally {
+    process.env.PATH = previousPath;
+  }
+}
+
 describe('normalizeProjectName', () => {
   test('lowercases and replaces separators with hyphens', () => {
     expect(normalizeProjectName('  My New App!!  ')).toBe('my-new-app');
@@ -88,6 +159,7 @@ describe('parseInitArguments', () => {
     expect(parseInitArguments(['my-app', './tmp'])).toEqual({
       projectName: 'my-app',
       destination: './tmp',
+      installDependencies: true,
     });
   });
 
@@ -97,6 +169,15 @@ describe('parseInitArguments', () => {
     ).toEqual({
       projectName: 'My App',
       destination: './tmp',
+      installDependencies: true,
+    });
+  });
+
+  test('supports skipping dependency installation', () => {
+    expect(parseInitArguments(['--no-install', 'my-app', './tmp'])).toEqual({
+      projectName: 'my-app',
+      destination: './tmp',
+      installDependencies: false,
     });
   });
 });
@@ -113,6 +194,7 @@ describe('prepareInitTarget', () => {
     ).resolves.toEqual({
       projectName: 'my-app',
       destination,
+      installDependencies: true,
     });
   });
 
@@ -136,7 +218,7 @@ describe('cloneStarter', () => {
     );
 
     await expect(
-      cloneStarter(starter, destination, createNonInteractiveIO()),
+      cloneStarter(starter, destination, false, createNonInteractiveIO()),
     ).resolves.toEqual({ originUrl: null });
 
     expect(existsSync(join(destination, 'README.md'))).toBeTrue();
@@ -144,6 +226,68 @@ describe('cloneStarter', () => {
       'starter contents\n',
     );
     expect(existsSync(join(destination, '.git'))).toBeFalse();
+  });
+
+  test('installs dependencies with pnpm when pnpm lockfiles are present', async () => {
+    const { starter } = createStarterRepo({ lockfile: 'pnpm' });
+    const destination = join(
+      mkdtempSync(join(tmpdir(), 'josent-install-pnpm-')),
+      'my-app',
+    );
+    const logPath = join(tmpdir(), `josent-install-${Date.now()}-pnpm.log`);
+    const commandDir = createCommandDir(logPath, ['pnpm', 'npm']);
+
+    await withPath([commandDir], async () => {
+      await expect(
+        cloneStarter(starter, destination, true, createNonInteractiveIO()),
+      ).resolves.toEqual({ originUrl: null });
+    });
+
+    expect(readFileSync(logPath, 'utf8')).toBe('pnpm install\n');
+  });
+
+  test('falls back to npm when pnpm is unavailable', async () => {
+    const { starter } = createStarterRepo({ lockfile: 'pnpm' });
+    const destination = join(
+      mkdtempSync(join(tmpdir(), 'josent-install-npm-')),
+      'my-app',
+    );
+    const logPath = join(tmpdir(), `josent-install-${Date.now()}-npm.log`);
+    const commandDir = createCommandDir(logPath, ['npm']);
+    const binaryDir = createBinaryMirrorDir({
+      git: getSystemBinaryPath('git'),
+      node: getSystemBinaryPath('node'),
+    });
+
+    await withPath(
+      [commandDir, binaryDir],
+      async () => {
+        await expect(
+          cloneStarter(starter, destination, true, createNonInteractiveIO()),
+        ).resolves.toEqual({ originUrl: null });
+      },
+      false,
+    );
+
+    expect(readFileSync(logPath, 'utf8')).toBe('npm install\n');
+  });
+
+  test('skips dependency installation when requested', async () => {
+    const { starter } = createStarterRepo({ lockfile: 'pnpm' });
+    const destination = join(
+      mkdtempSync(join(tmpdir(), 'josent-install-skip-')),
+      'my-app',
+    );
+    const logPath = join(tmpdir(), `josent-install-${Date.now()}-skip.log`);
+    const commandDir = createCommandDir(logPath, ['pnpm', 'npm']);
+
+    await withPath([commandDir], async () => {
+      await expect(
+        cloneStarter(starter, destination, false, createNonInteractiveIO()),
+      ).resolves.toEqual({ originUrl: null });
+    });
+
+    expect(existsSync(logPath)).toBeFalse();
   });
 
   test('can ask for and configure a new origin URL', async () => {
@@ -154,7 +298,7 @@ describe('cloneStarter', () => {
     );
     const io = createInteractiveIO();
 
-    const clonePromise = cloneStarter(starter, destination, io);
+    const clonePromise = cloneStarter(starter, destination, false, io);
     await Promise.resolve();
     io.input.write('https://github.com/example/new-origin.git\n');
 
