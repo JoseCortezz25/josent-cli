@@ -3,7 +3,7 @@ import {
   loadStarterCatalog,
   type StarterCatalogEntry,
 } from './catalog.js';
-import { prepareInitTarget } from './init.js';
+import { cloneStarter, prepareInitTarget } from './init.js';
 import { selectStarter } from './starter-picker.js';
 
 export const APP_NAME = 'josent';
@@ -54,6 +54,9 @@ export function getInitHelpText(): string {
     '  Enter        Choose the highlighted starter',
     '  Esc          Clear the search query',
     '  Ctrl+C       Cancel the flow',
+    '',
+    'The selected starter is cloned, its git history is removed, and you can',
+    'optionally set a new origin URL.',
     '',
     'Flags:',
     '  -n, --name <name>           Set the project name',
@@ -117,15 +120,25 @@ export async function run(argv: string[]): Promise<number> {
 
     try {
       projectTarget = await prepareInitTarget(argv.slice(1));
+      const cloneResult = await cloneStarter(
+        starter,
+        projectTarget.destination,
+      );
+
+      writeLine(`Selected starter: ${starter.name}`);
+      writeLine(`Repository: ${starter.repoUrl}`);
+      writeLine(`Project name: ${projectTarget.projectName}`);
+      writeLine(`Destination: ${projectTarget.destination}`);
+      writeLine('Starter cloned successfully.');
+
+      if (cloneResult.originUrl !== null) {
+        writeLine(`New origin: ${cloneResult.originUrl}`);
+      }
     } catch (error) {
       writeError(error instanceof Error ? error.message : String(error));
       return 1;
     }
 
-    writeLine(`Selected starter: ${starter.name}`);
-    writeLine(`Repository: ${starter.repoUrl}`);
-    writeLine(`Project name: ${projectTarget.projectName}`);
-    writeLine(`Destination: ${projectTarget.destination}`);
     return 0;
   }
 
