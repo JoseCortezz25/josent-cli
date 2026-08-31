@@ -3,6 +3,7 @@ import {
   loadStarterCatalog,
   type StarterCatalogEntry,
 } from './catalog.js';
+import { prepareInitTarget } from './init.js';
 import { selectStarter } from './starter-picker.js';
 
 export const APP_NAME = 'josent';
@@ -42,10 +43,10 @@ export function getInitHelpText(): string {
   return [
     `${APP_NAME} init`,
     '',
-    'Start interactive starter selection.',
+    'Start interactive starter selection and project setup.',
     '',
     'Usage:',
-    `  ${APP_NAME} init`,
+    `  ${APP_NAME} init [project-name] [destination]`,
     '',
     'Controls:',
     '  type         Filter the starter list',
@@ -53,6 +54,10 @@ export function getInitHelpText(): string {
     '  Enter        Choose the highlighted starter',
     '  Esc          Clear the search query',
     '  Ctrl+C       Cancel the flow',
+    '',
+    'Flags:',
+    '  -n, --name <name>           Set the project name',
+    '  -d, --destination <path>    Set the destination path',
     '',
     'Related commands:',
     `  ${APP_NAME} list`,
@@ -100,12 +105,6 @@ export async function run(argv: string[]): Promise<number> {
       return 0;
     }
 
-    if (subcommand !== undefined) {
-      writeError(`Unknown argument for ${APP_NAME} init: ${subcommand}`);
-      writeError(`Run \`${APP_NAME} init --help\` to see the available usage.`);
-      return 1;
-    }
-
     const starters = loadStarterCatalog(CATALOG_VERSION);
     const starter = await selectStarter(starters);
 
@@ -114,8 +113,19 @@ export async function run(argv: string[]): Promise<number> {
       return 1;
     }
 
+    let projectTarget: Awaited<ReturnType<typeof prepareInitTarget>>;
+
+    try {
+      projectTarget = await prepareInitTarget(argv.slice(1));
+    } catch (error) {
+      writeError(error instanceof Error ? error.message : String(error));
+      return 1;
+    }
+
     writeLine(`Selected starter: ${starter.name}`);
     writeLine(`Repository: ${starter.repoUrl}`);
+    writeLine(`Project name: ${projectTarget.projectName}`);
+    writeLine(`Destination: ${projectTarget.destination}`);
     return 0;
   }
 
