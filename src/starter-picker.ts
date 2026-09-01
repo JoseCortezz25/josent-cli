@@ -44,7 +44,7 @@ function formatStarterLine(
   starter: StarterCatalogEntry,
   isSelected: boolean,
 ): string {
-  const marker = isSelected ? '>' : ' ';
+  const marker = isSelected ? '›' : ' ';
   const tags = starter.tags.length > 0 ? starter.tags.join(', ') : 'no tags';
 
   return `${marker} ${starter.name} [${tags}] — ${starter.description}`;
@@ -65,12 +65,14 @@ export function renderStarterPicker(
   return [
     'josent init',
     '',
-    'Use ↑/↓ to move, type to filter, Enter to select, Esc to clear, Ctrl+C to cancel.',
-    `Search: ${normalizedQuery === '' ? '(all starters)' : query}`,
+    'Select a starter',
+    '',
+    'Type to filter · ↑/↓ move · Enter select · Esc clear · Ctrl+C cancel',
+    `Filter: ${normalizedQuery === '' ? 'all starters' : query}`,
     '',
     filtered.length === 0
       ? `No starters match ${JSON.stringify(query)}.`
-      : `${filtered.length} starter${filtered.length === 1 ? '' : 's'} available.`,
+      : `${filtered.length} starter${filtered.length === 1 ? '' : 's'} found.`,
     '',
     ...filtered.map((starter, index) =>
       formatStarterLine(starter, index === safeSelectedIndex),

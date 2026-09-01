@@ -45,11 +45,13 @@ test('renderStarterPicker shows the list first and marks the selection', () => {
   const view = renderStarterPicker(starters, 1, '');
 
   expect(view).toContain('josent init');
+  expect(view).toContain('Select a starter');
   expect(view).toContain(
-    'Use ↑/↓ to move, type to filter, Enter to select, Esc to clear, Ctrl+C to cancel.',
+    'Type to filter · ↑/↓ move · Enter select · Esc clear · Ctrl+C cancel',
   );
+  expect(view).toContain('Filter: all starters');
   expect(view).toContain(
-    '> web-app [web, nextjs, typescript] — Next.js application starter',
+    '› web-app [web, nextjs, typescript] — Next.js application starter',
   );
   expect(view).toContain(
     '  bun-cli [bun, typescript, cli] — Bun and TypeScript CLI starter',

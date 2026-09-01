@@ -188,10 +188,7 @@ async function askForNewOriginUrl(io: InitPromptIO): Promise<string | null> {
     return null;
   }
 
-  const answer = await askQuestion(
-    io,
-    'New origin URL (leave blank to skip): ',
-  );
+  const answer = await askQuestion(io, 'New origin URL (optional): ');
   const normalized = answer.trim();
 
   return normalized === '' ? null : normalized;
@@ -338,7 +335,9 @@ async function resolveDestination(
 ): Promise<string> {
   const answer =
     destination?.trim() ||
-    (isInteractive(io) ? (await askQuestion(io, 'Destination: ')).trim() : '');
+    (isInteractive(io)
+      ? (await askQuestion(io, 'Destination path: ')).trim()
+      : '');
 
   if (answer === '') {
     throw new Error(
