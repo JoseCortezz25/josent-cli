@@ -19,7 +19,7 @@ export function getHelpText(): string {
   return [
     `${APP_NAME} v${VERSION}`,
     '',
-    'A Bun + TypeScript CLI for curated template starters.',
+    'A CLI for curated template starters.',
     '',
     'Usage:',
     `  ${APP_NAME} <command>`,
