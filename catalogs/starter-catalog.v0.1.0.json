@@ -1,0 +1,23 @@
+{
+  "version": "0.1.0",
+  "starters": [
+    {
+      "name": "bun-cli",
+      "repoUrl": "https://github.com/JoseCortezz25/bun-cli-starter.git",
+      "description": "Bun and TypeScript CLI starter",
+      "tags": ["bun", "typescript", "cli"]
+    },
+    {
+      "name": "web-app",
+      "repoUrl": "https://github.com/JoseCortezz25/web-app-starter.git",
+      "description": "Next.js application starter",
+      "tags": ["web", "nextjs", "typescript"]
+    },
+    {
+      "name": "api-service",
+      "repoUrl": "https://github.com/JoseCortezz25/api-service-starter.git",
+      "description": "Node.js service starter",
+      "tags": ["api", "node", "typescript"]
+    }
+  ]
+}
