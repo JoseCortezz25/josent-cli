@@ -1,7 +1,11 @@
-import { existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { stdin as processStdin, stdout as processStdout } from 'node:process';
 import type { ReadStream, WriteStream } from 'node:tty';
+
+import type { StarterCatalogEntry } from './catalog.js';
 
 export interface InitPromptIO {
   input: ReadStream;
@@ -16,6 +20,10 @@ export interface InitArguments {
 export interface PreparedInitTarget {
   projectName: string;
   destination: string;
+}
+
+export interface CloneStarterResult {
+  originUrl: string | null;
 }
 
 export function normalizeProjectName(projectName: string): string {
@@ -39,7 +47,7 @@ function askQuestion(io: InitPromptIO, question: string): Promise<string> {
   });
 
   return new Promise<string>((resolve, reject) => {
-    prompt.question(question, (answer) => {
+    prompt.question(question, (answer: string) => {
       prompt.close();
       resolve(answer);
     });
@@ -49,6 +57,88 @@ function askQuestion(io: InitPromptIO, question: string): Promise<string> {
       reject(new Error('josent init was cancelled.'));
     });
   });
+}
+
+function runGit(args: string[], cwd: string): void {
+  try {
+    execFileSync('git', args, {
+      cwd,
+      stdio: 'pipe',
+    });
+  } catch (error) {
+    const stderr =
+      error instanceof Error && 'stderr' in error
+        ? String((error as { stderr?: Buffer | string }).stderr ?? '').trim()
+        : '';
+    const command = ['git', ...args].join(' ');
+
+    throw new Error(
+      stderr === ''
+        ? `Failed to run ${command}.`
+        : `Failed to run ${command}: ${stderr}`,
+      { cause: error },
+    );
+  }
+}
+
+function cloneStarterRepository(
+  starter: StarterCatalogEntry,
+  destination: string,
+): void {
+  const args = ['clone'];
+
+  if (starter.branch !== undefined) {
+    args.push('--branch', starter.branch);
+  }
+
+  args.push(starter.repoUrl, destination);
+  runGit(args, '.');
+}
+
+function removeGitHistory(destination: string): void {
+  rmSync(join(destination, '.git'), {
+    force: true,
+    recursive: true,
+  });
+}
+
+async function askForNewOriginUrl(io: InitPromptIO): Promise<string | null> {
+  if (!isInteractive(io)) {
+    return null;
+  }
+
+  const answer = await askQuestion(
+    io,
+    'New origin URL (leave blank to skip): ',
+  );
+  const normalized = answer.trim();
+
+  return normalized === '' ? null : normalized;
+}
+
+function configureOrigin(destination: string, originUrl: string): void {
+  runGit(['init'], destination);
+  runGit(['remote', 'add', 'origin', originUrl], destination);
+}
+
+export async function cloneStarter(
+  starter: StarterCatalogEntry,
+  destination: string,
+  io: InitPromptIO = {
+    input: processStdin,
+    output: processStdout,
+  },
+): Promise<CloneStarterResult> {
+  cloneStarterRepository(starter, destination);
+  removeGitHistory(destination);
+
+  const originUrl = await askForNewOriginUrl(io);
+
+  if (originUrl !== null) {
+    configureOrigin(destination, originUrl);
+  }
+
+  return { originUrl };
 }
 
 export function parseInitArguments(argv: string[]): InitArguments {
