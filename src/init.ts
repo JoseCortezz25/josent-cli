@@ -15,16 +15,20 @@ export interface InitPromptIO {
 export interface InitArguments {
   projectName?: string;
   destination?: string;
+  installDependencies: boolean;
 }
 
 export interface PreparedInitTarget {
   projectName: string;
   destination: string;
+  installDependencies: boolean;
 }
 
 export interface CloneStarterResult {
   originUrl: string | null;
 }
+
+type PackageManager = 'pnpm' | 'npm';
 
 export function normalizeProjectName(projectName: string): string {
   return projectName
@@ -81,6 +85,52 @@ function runGit(args: string[], cwd: string): void {
   }
 }
 
+function runPackageManager(
+  packageManager: PackageManager,
+  args: string[],
+  cwd: string,
+): void {
+  try {
+    execFileSync(packageManager, args, {
+      cwd,
+      stdio: 'pipe',
+    });
+  } catch (error) {
+    if (isCommandNotFound(error)) {
+      throw error;
+    }
+
+    const stderr =
+      error instanceof Error && 'stderr' in error
+        ? String((error as { stderr?: Buffer | string }).stderr ?? '').trim()
+        : '';
+    const command = [packageManager, ...args].join(' ');
+
+    throw new Error(
+      stderr === ''
+        ? `Failed to run ${command}.`
+        : `Failed to run ${command}: ${stderr}`,
+      { cause: error },
+    );
+  }
+}
+
+function isCommandNotFound(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+
+  const code = (error as { code?: string }).code;
+
+  return (
+    code === 'ENOENT' ||
+    message.includes('executable not found in $path') ||
+    message.includes('enoent')
+  );
+}
+
 function cloneStarterRepository(
   starter: StarterCatalogEntry,
   destination: string,
@@ -100,6 +150,37 @@ function removeGitHistory(destination: string): void {
     force: true,
     recursive: true,
   });
+}
+
+function detectPreferredPackageManager(destination: string): PackageManager {
+  if (existsSync(join(destination, 'pnpm-lock.yaml'))) {
+    return 'pnpm';
+  }
+
+  if (existsSync(join(destination, 'package-lock.json'))) {
+    return 'npm';
+  }
+
+  return 'pnpm';
+}
+
+function installDependencies(destination: string): void {
+  const preferredPackageManager = detectPreferredPackageManager(destination);
+
+  if (preferredPackageManager === 'npm') {
+    runPackageManager('npm', ['install'], destination);
+    return;
+  }
+
+  try {
+    runPackageManager('pnpm', ['install'], destination);
+  } catch (error) {
+    if (!isCommandNotFound(error)) {
+      throw error;
+    }
+
+    runPackageManager('npm', ['install'], destination);
+  }
 }
 
 async function askForNewOriginUrl(io: InitPromptIO): Promise<string | null> {
@@ -124,6 +205,7 @@ function configureOrigin(destination: string, originUrl: string): void {
 export async function cloneStarter(
   starter: StarterCatalogEntry,
   destination: string,
+  install = true,
   io: InitPromptIO = {
     input: processStdin,
     output: processStdout,
@@ -138,12 +220,17 @@ export async function cloneStarter(
     configureOrigin(destination, originUrl);
   }
 
+  if (install) {
+    installDependencies(destination);
+  }
+
   return { originUrl };
 }
 
 export function parseInitArguments(argv: string[]): InitArguments {
   let projectName: string | undefined;
   let destination: string | undefined;
+  let installDependencies = true;
 
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -183,6 +270,11 @@ export function parseInitArguments(argv: string[]): InitArguments {
       continue;
     }
 
+    if (argument === '--no-install') {
+      installDependencies = false;
+      continue;
+    }
+
     if (
       argument.startsWith('--destination=') ||
       argument.startsWith('--path=')
@@ -211,6 +303,7 @@ export function parseInitArguments(argv: string[]): InitArguments {
   return {
     ...(projectName === undefined ? {} : { projectName }),
     ...(destination === undefined ? {} : { destination }),
+    installDependencies,
   };
 }
 
@@ -269,10 +362,12 @@ export async function prepareInitTarget(
     output: processStdout,
   },
 ): Promise<PreparedInitTarget> {
-  const { projectName, destination } = parseInitArguments(argv);
+  const { projectName, destination, installDependencies } =
+    parseInitArguments(argv);
 
   return {
     projectName: await resolveProjectName(projectName, io),
     destination: await resolveDestination(destination, io),
+    installDependencies,
   };
 }
