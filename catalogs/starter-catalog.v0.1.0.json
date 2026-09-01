@@ -2,6 +2,18 @@
   "version": "0.1.0",
   "starters": [
     {
+      "name": "nextjs-starter",
+      "repoUrl": "https://github.com/JoseCortezz25/template-starter-nextjs.git",
+      "description": "Next.js starter available for OpenCode and Claude",
+      "tags": ["nextjs", "web", "opencode", "claude"]
+    },
+    {
+      "name": "expo-react-native-starter",
+      "repoUrl": "https://github.com/JoseCortezz25/expo-starter-template.git",
+      "description": "Expo / React Native starter available for OpenCode and Claude",
+      "tags": ["expo", "react-native", "mobile", "opencode", "claude"]
+    },
+    {
       "name": "bun-cli",
       "repoUrl": "https://github.com/JoseCortezz25/bun-cli-starter.git",
       "description": "Bun and TypeScript CLI starter",
