@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { stdin as processStdin, stdout as processStdout } from 'node:process';
@@ -150,6 +150,10 @@ function removeGitHistory(destination: string): void {
     force: true,
     recursive: true,
   });
+}
+
+function isDirectoryEmpty(path: string): boolean {
+  return readdirSync(path).length === 0;
 }
 
 function detectPreferredPackageManager(destination: string): PackageManager {
@@ -331,27 +335,28 @@ async function resolveProjectName(
 
 async function resolveDestination(
   destination: string | undefined,
-  io: InitPromptIO,
 ): Promise<string> {
-  const answer =
-    destination?.trim() ||
-    (isInteractive(io)
-      ? (await askQuestion(io, 'Destination path: ')).trim()
-      : '');
+  const answer = destination?.trim() ?? '';
 
-  if (answer === '') {
+  if (answer !== '') {
+    if (existsSync(answer)) {
+      throw new Error(
+        `Destination already exists: ${answer}. Choose an empty directory or remove it before running josent init.`,
+      );
+    }
+
+    return answer;
+  }
+
+  const currentDirectory = process.cwd();
+
+  if (!isDirectoryEmpty(currentDirectory)) {
     throw new Error(
-      'A destination is required. Pass one as an argument or run josent init interactively.',
+      'Current directory is not empty. Run josent init in a blank folder or pass a destination path.',
     );
   }
 
-  if (existsSync(answer)) {
-    throw new Error(
-      `Destination already exists: ${answer}. Choose an empty directory or remove it before running josent init.`,
-    );
-  }
-
-  return answer;
+  return currentDirectory;
 }
 
 export async function prepareInitTarget(
@@ -366,7 +371,7 @@ export async function prepareInitTarget(
 
   return {
     projectName: await resolveProjectName(projectName, io),
-    destination: await resolveDestination(destination, io),
+    destination: await resolveDestination(destination),
     installDependencies,
   };
 }
