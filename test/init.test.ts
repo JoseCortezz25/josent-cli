@@ -148,6 +148,15 @@ async function withPath<T>(
   }
 }
 
+function withCwd<T>(directory: string, run: () => Promise<T>): Promise<T> {
+  const previousCwd = process.cwd();
+  process.chdir(directory);
+
+  return run().finally(() => {
+    process.chdir(previousCwd);
+  });
+}
+
 describe('normalizeProjectName', () => {
   test('lowercases and replaces separators with hyphens', () => {
     expect(normalizeProjectName('  My New App!!  ')).toBe('my-new-app');
@@ -196,6 +205,37 @@ describe('prepareInitTarget', () => {
       destination,
       installDependencies: true,
     });
+  });
+
+  test('uses the current working directory when no destination is provided', async () => {
+    const currentDirectory = mkdtempSync(join(tmpdir(), 'josent-init-cwd-'));
+
+    await withCwd(currentDirectory, async () => {
+      await expect(
+        prepareInitTarget(['My App'], createNonInteractiveIO()),
+      ).resolves.toEqual({
+        projectName: 'my-app',
+        destination: currentDirectory,
+        installDependencies: true,
+      });
+    });
+
+    rmSync(currentDirectory, { recursive: true, force: true });
+  });
+
+  test('rejects a non-empty current working directory when no destination is provided', async () => {
+    const currentDirectory = mkdtempSync(join(tmpdir(), 'josent-init-cwd-'));
+    writeFileSync(join(currentDirectory, 'README.md'), 'occupied\n');
+
+    await withCwd(currentDirectory, async () => {
+      await expect(
+        prepareInitTarget(['My App'], createNonInteractiveIO()),
+      ).rejects.toThrow(
+        'Current directory is not empty. Run josent init in a blank folder or pass a destination path.',
+      );
+    });
+
+    rmSync(currentDirectory, { recursive: true, force: true });
   });
 
   test('rejects an existing destination with a clear message', async () => {
