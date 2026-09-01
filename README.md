@@ -31,6 +31,8 @@ bun install
 bun run src/cli.ts --help
 bun run src/cli.ts --version
 bun run src/cli.ts init
+bun run src/cli.ts init my-app ./tmp/my-app
+bun run src/cli.ts init --name my-app --destination ./tmp/my-app
 bun run src/cli.ts list
 ```
 
