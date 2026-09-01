@@ -43,7 +43,7 @@ export function getInitHelpText(): string {
   return [
     `${APP_NAME} init`,
     '',
-    'Start interactive starter selection and project setup.',
+    'Interactive starter selection and project setup.',
     '',
     'Usage:',
     `  ${APP_NAME} init [project-name] [destination]`,
@@ -52,7 +52,7 @@ export function getInitHelpText(): string {
     '  type         Filter the starter list',
     '  ↑ / ↓        Move the selection',
     '  Enter        Choose the highlighted starter',
-    '  Esc          Clear the search query',
+    '  Esc          Clear the filter',
     '  Ctrl+C       Cancel the flow',
     '',
     'The selected starter is cloned, its git history is removed, and you can',
@@ -131,16 +131,18 @@ export async function run(argv: string[]): Promise<number> {
       writeLine(`Repository: ${starter.repoUrl}`);
       writeLine(`Project name: ${projectTarget.projectName}`);
       writeLine(`Destination: ${projectTarget.destination}`);
-      writeLine('Starter cloned successfully.');
+      writeLine('');
+      writeLine('Done:');
+      writeLine('  Starter cloned successfully.');
 
       if (cloneResult.originUrl !== null) {
-        writeLine(`New origin: ${cloneResult.originUrl}`);
+        writeLine(`  New origin: ${cloneResult.originUrl}`);
       }
 
       if (projectTarget.installDependencies) {
-        writeLine('Dependencies installed successfully.');
+        writeLine('  Dependencies installed successfully.');
       } else {
-        writeLine('Dependency installation skipped.');
+        writeLine('  Dependency installation skipped.');
       }
     } catch (error) {
       writeError(error instanceof Error ? error.message : String(error));

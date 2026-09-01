@@ -192,10 +192,7 @@ async function askForNewOriginUrl(io: InitPromptIO): Promise<string | null> {
     return null;
   }
 
-  const answer = await askQuestion(
-    io,
-    'New origin URL (leave blank to skip): ',
-  );
+  const answer = await askQuestion(io, 'New origin URL (optional): ');
   const normalized = answer.trim();
 
   return normalized === '' ? null : normalized;

@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 
 import { loadStarterCatalog } from '../src/catalog.js';
-import { getListText } from '../src/index.js';
+import { getInitHelpText, getListText } from '../src/index.js';
 import { selectStarter } from '../src/starter-picker.js';
 
 test('starter catalog includes the first available repositories', async () => {
@@ -17,6 +17,10 @@ test('starter catalog includes the first available repositories', async () => {
   expect(getListText()).toContain(
     '- expo-react-native-starter [expo, react-native, mobile, opencode, claude] — Expo / React Native starter available for OpenCode and Claude',
   );
+  expect(getInitHelpText()).toContain(
+    'Interactive starter selection and project setup.',
+  );
+  expect(getInitHelpText()).toContain('Esc          Clear the filter');
 
   await expect(
     selectStarter(starters, {
