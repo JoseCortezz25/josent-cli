@@ -7,7 +7,7 @@ import { cloneStarter, prepareInitTarget } from './init.js';
 import { selectStarter } from './starter-picker.js';
 
 export const APP_NAME = 'josent';
-export const VERSION = '0.1.0';
+export const VERSION = '0.1.1';
 
 function formatStarter(entry: StarterCatalogEntry): string {
   const tags =

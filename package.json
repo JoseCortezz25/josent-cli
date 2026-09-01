@@ -1,6 +1,6 @@
 {
   "name": "josent-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A CLI for curated template starters: clone a starter repo, reset its git history, and set up a new project interactively.",
   "type": "module",
   "packageManager": "bun@1.4.0",
