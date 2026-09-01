@@ -1,72 +1,69 @@
 # josent-cli
 
-`josent` is an interactive Bun + TypeScript CLI for installing curated template starters from a fixed catalog of GitHub repositories.
+`josent` is an interactive CLI for installing curated template starters from a fixed catalog of GitHub repositories. It clones the starter you pick, removes its git history, optionally sets a new `origin`, and installs dependencies so you can start working immediately.
 
-This repository currently contains the foundation for the CLI: TypeScript scaffolding, linting, formatting, pre-commit checks, and commit message conventions.
+## Usage
 
-## What the CLI will do
+Run without installing:
 
-The first product slice will focus on two commands:
+```bash
+npx josent-cli init
+```
 
-- `josent init` — guide the user through selecting and cloning a starter
+Or install globally:
+
+```bash
+npm install -g josent-cli
+josent init
+```
+
+## Commands
+
+- `josent init [project-name] [destination]` — interactive starter selection and project setup
 - `josent list` — show the available starter catalog
 
-The long-term goal is to make the CLI easy for both humans and agents to use.
+### `josent init` flags
 
-## Getting started
+- `-n, --name <name>` — set the project name
+- `-d, --destination <path>` — set the destination path
+- `--no-install` — skip dependency installation
 
-### Prerequisites
+### Global flags
 
-- [Bun](https://bun.sh/) 1.4 or newer
+- `-h, --help` — show help text
+- `-v, --version` — show the CLI version
 
-### Install dependencies
+## `init` controls
+
+While the starter list is open:
+
+- type — filter the starter list
+- `↑` / `↓` — move the selection
+- `Enter` — choose the highlighted starter
+- `Esc` — clear the search query
+- `Ctrl+C` — cancel the flow
+
+## Requirements
+
+- Node.js 18 or newer
+- `git` available on `PATH`
+- `pnpm` or `npm` for dependency installation (npm is used as a fallback)
+
+## Development
+
+Prerequisites: [Bun](https://bun.sh/) 1.4 or newer.
 
 ```bash
 bun install
-```
-
-### Run the scaffolded CLI
-
-```bash
-bun run src/cli.ts --help
-bun run src/cli.ts --version
-bun run src/cli.ts init
-bun run src/cli.ts init my-app ./tmp/my-app
-bun run src/cli.ts init --name my-app --destination ./tmp/my-app
-bun run src/cli.ts list
-```
-
-### Useful scripts
-
-```bash
-bun run dev
+bun run dev -- --help
 bun run build
-bun run lint
-bun run format:check
-bun run format
-bun run typecheck
 bun run check
 ```
 
-## Tooling
-
-- TypeScript for the application code
-- ESLint for code-quality checks
-- Prettier for formatting
-- Husky for Git hooks
-- lint-staged for staged-file checks
-- Commitlint for Conventional Commit enforcement
-
 ## Commit messages
 
-Commit messages follow [Conventional Commits](./docs/commit-conventions.md).
+Commit messages follow [Conventional Commits](./docs/commit-conventions.md). The `commit-msg` hook rejects messages that do not match the convention.
 
-The `commit-msg` hook rejects messages that do not match the convention.
+## License
 
-## Project structure
-
-```text
-src/
-  cli.ts
-  index.ts
-```
+[MIT](./LICENSE)

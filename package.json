@@ -1,12 +1,39 @@
 {
   "name": "josent-cli",
   "version": "0.1.0",
-  "private": true,
+  "description": "A CLI for curated template starters: clone a starter repo, reset its git history, and set up a new project interactively.",
   "type": "module",
   "packageManager": "bun@1.4.0",
-  "bin": {
-    "josent": "./dist/cli.js"
+  "license": "MIT",
+  "author": "Alfonso Chavarro Cortes <alfonsocortezz25@gmail.com>",
+  "homepage": "https://github.com/JoseCortezz25/josent-cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JoseCortezz25/josent-cli.git"
   },
+  "bugs": {
+    "url": "https://github.com/JoseCortezz25/josent-cli/issues"
+  },
+  "keywords": [
+    "cli",
+    "starter",
+    "template",
+    "scaffold",
+    "boilerplate",
+    "generator",
+    "nextjs",
+    "expo"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "josent": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "catalogs"
+  ],
   "scripts": {
     "dev": "bun run src/cli.ts",
     "build": "tsc -p tsconfig.json",
@@ -15,6 +42,7 @@
     "format:check": "prettier . --check",
     "lint": "eslint . --max-warnings=0",
     "prepare": "husky",
+    "prepublishOnly": "bun run build",
     "typecheck": "tsc --noEmit"
   },
   "lint-staged": {
