@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { stdin as processStdin, stdout as processStdout } from 'node:process';
@@ -150,10 +150,6 @@ function removeGitHistory(destination: string): void {
     force: true,
     recursive: true,
   });
-}
-
-function isDirectoryEmpty(path: string): boolean {
-  return readdirSync(path).length === 0;
 }
 
 function detectPreferredPackageManager(destination: string): PackageManager {
@@ -334,6 +330,7 @@ async function resolveProjectName(
 }
 
 async function resolveDestination(
+  projectName: string,
   destination: string | undefined,
 ): Promise<string> {
   const answer = destination?.trim() ?? '';
@@ -348,15 +345,15 @@ async function resolveDestination(
     return answer;
   }
 
-  const currentDirectory = process.cwd();
+  const destinationPath = join(process.cwd(), projectName);
 
-  if (!isDirectoryEmpty(currentDirectory)) {
+  if (existsSync(destinationPath)) {
     throw new Error(
-      'Current directory is not empty. Run josent init in a blank folder or pass a destination path.',
+      `Destination already exists: ${destinationPath}. Choose an empty directory or remove it before running josent init.`,
     );
   }
 
-  return currentDirectory;
+  return destinationPath;
 }
 
 export async function prepareInitTarget(
@@ -368,10 +365,11 @@ export async function prepareInitTarget(
 ): Promise<PreparedInitTarget> {
   const { projectName, destination, installDependencies } =
     parseInitArguments(argv);
+  const resolvedProjectName = await resolveProjectName(projectName, io);
 
   return {
-    projectName: await resolveProjectName(projectName, io),
-    destination: await resolveDestination(destination),
+    projectName: resolvedProjectName,
+    destination: await resolveDestination(resolvedProjectName, destination),
     installDependencies,
   };
 }

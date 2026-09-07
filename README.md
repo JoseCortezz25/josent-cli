@@ -19,7 +19,7 @@ josent init
 
 ## Commands
 
-- `josent init [project-name] [destination]` — interactive starter selection and project setup
+- `josent init [project-name] [destination]` — interactive starter selection and project setup. If you omit the destination, josent clones into `./<project-name>` from the current folder.
 - `josent list` — show the available starter catalog
 
 ### `josent init` flags
