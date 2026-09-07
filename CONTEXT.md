@@ -19,16 +19,17 @@ Build `josent`, an interactive Bun + TypeScript CLI that helps humans and agents
 3. The user can search and choose a starter with arrow keys and Enter.
 4. The CLI asks for a project name.
 5. The CLI normalizes the name to lowercase with hyphens.
-6. The CLI asks where to clone the project.
-7. The CLI fails clearly if the destination already exists.
-8. The CLI clones the selected GitHub repo into the chosen directory.
-9. The cloned starter is left intact during clone.
-10. The CLI removes the git history by default.
-11. The CLI optionally asks for a new origin URL.
-12. The CLI installs dependencies automatically by default.
-13. The user can skip installation with `--no-install`.
-14. The CLI prefers the package manager implied by the starter's lockfile.
-15. If `pnpm` is available, it is preferred; if not, the CLI falls back to `npm`.
+6. The CLI uses the current folder as the parent context when no destination is provided.
+7. The CLI clones the selected GitHub repo into `./<project-name>` by default.
+8. The CLI fails clearly if the destination already exists.
+9. The CLI clones the selected GitHub repo into the chosen directory.
+10. The cloned starter is left intact during clone.
+11. The CLI removes the git history by default.
+12. The CLI optionally asks for a new origin URL.
+13. The CLI installs dependencies automatically by default.
+14. The user can skip installation with `--no-install`.
+15. The CLI prefers the package manager implied by the starter's lockfile.
+16. If `pnpm` is available, it is preferred; if not, the CLI falls back to `npm`.
 
 ## Catalog Rules
 

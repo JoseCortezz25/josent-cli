@@ -207,7 +207,7 @@ describe('prepareInitTarget', () => {
     });
   });
 
-  test('uses the current working directory when no destination is provided', async () => {
+  test('uses the current working directory as the parent context when no destination is provided', async () => {
     const currentDirectory = mkdtempSync(join(tmpdir(), 'josent-init-cwd-'));
 
     await withCwd(currentDirectory, async () => {
@@ -215,7 +215,7 @@ describe('prepareInitTarget', () => {
         prepareInitTarget(['My App'], createNonInteractiveIO()),
       ).resolves.toEqual({
         projectName: 'my-app',
-        destination: currentDirectory,
+        destination: join(currentDirectory, 'my-app'),
         installDependencies: true,
       });
     });
@@ -223,16 +223,30 @@ describe('prepareInitTarget', () => {
     rmSync(currentDirectory, { recursive: true, force: true });
   });
 
-  test('rejects a non-empty current working directory when no destination is provided', async () => {
-    const currentDirectory = mkdtempSync(join(tmpdir(), 'josent-init-cwd-'));
+  test('clones successfully from a non-empty current working directory when no destination is provided', async () => {
+    const { starter } = createStarterRepo();
+    const currentDirectory = mkdtempSync(join(tmpdir(), 'josent-init-flow-'));
     writeFileSync(join(currentDirectory, 'README.md'), 'occupied\n');
 
     await withCwd(currentDirectory, async () => {
-      await expect(
-        prepareInitTarget(['My App'], createNonInteractiveIO()),
-      ).rejects.toThrow(
-        'Current directory is not empty. Run josent init in a blank folder or pass a destination path.',
+      const target = await prepareInitTarget(
+        ['My App'],
+        createNonInteractiveIO(),
       );
+
+      await expect(
+        cloneStarter(
+          starter,
+          target.destination,
+          false,
+          createNonInteractiveIO(),
+        ),
+      ).resolves.toEqual({ originUrl: null });
+
+      expect(
+        existsSync(join(currentDirectory, 'my-app', 'README.md')),
+      ).toBeTrue();
+      expect(existsSync(join(currentDirectory, 'my-app', '.git'))).toBeFalse();
     });
 
     rmSync(currentDirectory, { recursive: true, force: true });

@@ -55,7 +55,7 @@ export function getInitHelpText(): string {
     '  Esc          Clear the filter',
     '  Ctrl+C       Cancel the flow',
     '',
-    'The selected starter is cloned, its git history is removed, and you can',
+    'The selected starter is cloned into the project folder, its git history is removed, and you can',
     'optionally set a new origin URL.',
     '',
     'Flags:',
