@@ -182,6 +182,16 @@ describe('parseInitArguments', () => {
     });
   });
 
+  test('preserves the --path alias', () => {
+    expect(parseInitArguments(['--name', 'my-app', '--path', './tmp'])).toEqual(
+      {
+        projectName: 'my-app',
+        destination: './tmp',
+        installDependencies: true,
+      },
+    );
+  });
+
   test('supports skipping dependency installation', () => {
     expect(parseInitArguments(['--no-install', 'my-app', './tmp'])).toEqual({
       projectName: 'my-app',
@@ -230,7 +240,7 @@ describe('prepareInitTarget', () => {
 
     await withCwd(currentDirectory, async () => {
       const target = await prepareInitTarget(
-        ['My App'],
+        ['--name', 'My App'],
         createNonInteractiveIO(),
       );
 
